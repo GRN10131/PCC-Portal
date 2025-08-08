@@ -1,54 +1,140 @@
 <!DOCTYPE html>
-<title>User Select</title>
-<link rel="icon" type="image/x-icon" href="Logo.png">
 <html lang="en">
 <head>
-<title>Page Title</title>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-/* Style the body */
-body {
-  font-family: Arial;
-  margin: 0;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select an Account</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #630718, #cc3165);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-/* Header/Logo Title */
-.header {
-  padding: 10px;
-  text-align: left;
-  background: #630914;
-  color: white;
-  font-size: 10px;
-}
+    .container {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      max-width: 900px;
+      width: 95%;
+      text-align: center;
+    }
 
-/* Page Content */
-.content {padding:20px;}
-</style>
+    h1 {
+      margin-bottom: 20px;
+      font-size: 32px;
+      color: #333;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .account-card {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .account-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border: 2px solid #007bff;
+    }
+
+    .account-name {
+      font-size: 16px;
+      color: #333;
+      margin-top: 5px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>Paulet Cadet Club:</h1>
+  <div class="container">
+    <h1>Select an Account</h1>
+
+    <div class="grid">
+      <div class="account-card" onclick="selectAccount('User1')">
+        <img src="https://randomuser.me/api/portraits/men/11.jpg" class="avatar" alt="User1">
+        <div class="account-name">User 1</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User2')">
+        <img src="https://randomuser.me/api/portraits/women/12.jpg" class="avatar" alt="User2">
+        <div class="account-name">User 2</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User3')">
+        <img src="https://randomuser.me/api/portraits/men/13.jpg" class="avatar" alt="User3">
+        <div class="account-name">User 3</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User4')">
+        <img src="https://randomuser.me/api/portraits/women/14.jpg" class="avatar" alt="User4">
+        <div class="account-name">User 4</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User5')">
+        <img src="https://randomuser.me/api/portraits/men/15.jpg" class="avatar" alt="User5">
+        <div class="account-name">User 5</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User6')">
+        <img src="https://randomuser.me/api/portraits/women/16.jpg" class="avatar" alt="User6">
+        <div class="account-name">User 6</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User7')">
+        <img src="https://randomuser.me/api/portraits/men/17.jpg" class="avatar" alt="User7">
+        <div class="account-name">User 7</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User8')">
+        <img src="https://randomuser.me/api/portraits/women/18.jpg" class="avatar" alt="User8">
+        <div class="account-name">User 8</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User9')">
+        <img src="https://randomuser.me/api/portraits/men/19.jpg" class="avatar" alt="User9">
+        <div class="account-name">User 9</div>
+      </div>
+
+      <div class="account-card" onclick="selectAccount('User10')">
+        <img src="https://randomuser.me/api/portraits/women/20.jpg" class="avatar" alt="User10">
+        <div class="account-name">User 10</div>
+      </div>
+
+
+    </div>
   </div>
 
-<h1>Select acount</h1>
-<a href="WojtekMain Page.html"><h1>Wojciech Mroz</h1></a>
-<a href="SeanMain Page.html"><h1>Sean Chiramba</h1></a>
-<a href="ElliotMain Page.html"><h1>Elliot Lewis</h1></a>
-<a href="IzzyMain Page.html"><h1>Isabella Sulikowska</h1></a>
-<a href="task.html"><h1>Jacob Senior</h1></a>
-<a href="Main Page.html"><h1>Jake Sidwells</h1></a>
-<a href="OfficerLogin2.html"><h1>Grzegorz Nowiński</h1></a>
-<a href="OfficerLogin1.html"><h1>Jacob O'Macheare</h1></a>
-</script>
-   </div>
+  <script>
+    function selectAccount(accountName) {
+      alert("You selected: " + accountName);
+      // You can redirect: window.location.href = accountName.toLowerCase() + ".html";
+    }
+  </script>
 
 </body>
 </html>
-
-
-
-
-
 
