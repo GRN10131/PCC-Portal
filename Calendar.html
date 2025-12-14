@@ -1,237 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Interactive Calendar — Create Events</title>
+<meta charset="UTF-8">
+<title>Shared Calendar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  :root{
-    --bg:#0f1724; --card:#0b1220; --accent:#4f46e5; --muted:#94a3b8; --white:#e6eef8; --red:#ef4444; --radius:12px;
-  }
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,"Helvetica Neue",Arial;}
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071026);color:var(--white)}
-  .wrap{max-width:1100px;margin:28px auto;padding:20px;}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
-  h1{font-size:20px;margin:0}
-  .controls{display:flex;gap:8px;align-items:center}
-  button, .today-btn{background:transparent;border:0;padding:8px 10px;border-radius:8px;color:var(--white);cursor:pointer}
-  button:hover, .today-btn:hover{background:rgba(255,255,255,0.03)}
-  .btn-primary{background:linear-gradient(90deg,var(--accent),#06b6d4);border:0;color:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(79,70,229,0.18)}
-  .header-title{display:flex;gap:12px;align-items:center}
-  .month-label{font-weight:700;font-size:18px}
-  .calendar{display:grid;grid-template-columns:1fr 320px;gap:18px}
-  .month-panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-transform:uppercase;color:var(--muted);font-size:12px;padding:8px 6px}
-  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:6px}
-  .day{min-height:96px;background:transparent;border-radius:8px;padding:6px;position:relative;border:1px solid transparent}
-  .day:hover{background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.02);cursor:pointer}
-  .day .date{position:absolute;top:6px;right:8px;font-size:12px;color:var(--muted)}
-  .day.other-month{opacity:0.35}
-  .day.today{outline:2px solid rgba(99,102,241,0.2);box-shadow:inset 0 0 0 1px rgba(99,102,241,0.06)}
-  .events{display:flex;flex-direction:column;gap:6px;margin-top:24px;overflow:hidden}
-  .event-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 8px;border-radius:999px;font-size:12px;background:rgba(255,255,255,0.03);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .event-color{width:10px;height:10px;border-radius:3px;flex:0 0 10px}
-  .side-panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:var(--radius);height:100%;display:flex;flex-direction:column;gap:12px}
-  .side-panel h2{margin:0;font-size:16px}
-  .selected-day{font-size:13px;color:var(--muted)}
-  .event-list{flex:1;overflow:auto;padding-right:6px}
-  .ev-card{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;margin-bottom:8px;display:flex;gap:10px;align-items:center;justify-content:space-between}
-  .ev-left{display:flex;gap:10px;align-items:center}
-  .ev-title{font-weight:600}
-  .ev-time{font-size:12px;color:var(--muted)}
-  .no-events{color:var(--muted);font-size:13px}
-  .modal-back{position:fixed;inset:0;background:rgba(3,7,18,0.6);display:flex;align-items:center;justify-content:center;z-index:40}
-  .modal{width:520px;background:linear-gradient(180deg,#071129, #061522);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
-  label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
-  input[type=text], input[type=time], textarea, select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white)}
-  .row{display:flex;gap:8px}
-  .row .col{flex:1}
-  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-  .small{font-size:12px;color:var(--muted)}
-  .muted{color:var(--muted)}
-  .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
-  @media (max-width:900px){.calendar{grid-template-columns:1fr;gap:12px}.modal{width:92%}}
+body {
+  margin: 0;
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: system-ui, sans-serif;
+}
+header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover { opacity: 0.9; }
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 16px;
+}
+.day {
+  background: #020617;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 100px;
+}
+.day h4 {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.event {
+  background: rgba(255,255,255,0.05);
+  border-left: 4px solid;
+  padding: 4px 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+footer {
+  text-align: center;
+  padding: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="header-title">
-      <h1>Interactive Calendar</h1>
-      <div class="small muted">Create, edit and persist events locally</div>
-    </div>
-    <div class="controls">
-      <button id="prevBtn" title="Previous month">◀</button>
-      <button id="nextBtn" title="Next month">▶</button>
-      <button class="today-btn" id="todayBtn">Today</button>
-      <div style="width:14px"></div>
-      <div class="month-label" id="monthLabel">March 2025</div>
-      <div style="width:14px"></div>
-      <button class="btn-primary" id="addQuick">+ Add event</button>
-    </div>
-  </header>
 
-  <main class="calendar">
-    <section class="month-panel">
-      <div class="weekdays" id="weekdays">
-        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-      </div>
-      <div class="grid" id="calendarGrid" aria-live="polite"></div>
-      <div class="footer">Events saved in <code>localStorage</code>. This runs entirely in your browser.</div>
-    </section>
+<header>
+  <button id="prev">◀</button>
+  <h2 id="title"></h2>
+  <button id="next">▶</button>
+</header>
 
-    <aside class="side-panel">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <h2 id="sideTitle">Events</h2>
-          <div class="selected-day" id="selectedDayLabel">Select a day</div>
-        </div>
-        <div style="text-align:right">
-          <div class="small muted">Total events</div>
-          <div id="totalCount" style="font-weight:700">0</div>
-        </div>
-      </div>
-      <div class="event-list" id="eventList">
-        <div class="no-events">No events yet. Click a day to add one.</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button id="clearBtn" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px">Clear all</button>
-        <button id="exportBtn" class="btn-primary" style="flex:1">Export JSON</button>
-      </div>
-    </aside>
-  </main>
-</div>
+<div id="calendar"></div>
 
-<div id="modalWrap" style="display:none">
-  <div class="modal-back" id="modalBack">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <h3 id="modalTitle">Add event</h3>
-      <form id="eventForm">
-        <label>Title<input type="text" id="evtTitle" required placeholder="eg. Doctor, Team meeting"></label>
-        <div class="row">
-          <div class="col"><label>Date<input type="text" id="evtDate" readonly /></label></div>
-          <div class="col"><label>Time<input type="time" id="evtTime" /></label></div>
-        </div>
-        <label>Color
-          <select id="evtColor">
-            <option value="#4f46e5">Indigo</option>
-            <option value="#06b6d4">Cyan</option>
-            <option value="#f97316">Orange</option>
-            <option value="#ef4444">Red</option>
-            <option value="#10b981">Green</option>
-            <option value="#f43f5e">Pink</option>
-          </select>
-        </label>
-        <label>Description<textarea id="evtDesc" rows="3" placeholder="Optional description"></textarea></label>
-        <input type="hidden" id="evtId" />
-        <div class="modal-actions">
-          <button type="button" id="deleteBtn" style="display:none;background:transparent;border:0;color:var(--red)">Delete</button>
-          <button type="button" id="cancelBtn">Cancel</button>
-          <button type="submit" class="btn-primary" id="saveBtn">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+<footer>
+  Events are submitted via Microsoft Forms and shared for everyone
+</footer>
 
 <script>
-(() => {
-  const $=s=>document.querySelector(s), qs=s=>document.querySelectorAll(s);
-  const STORAGE_KEY='calendar_events_v1';
-  const API_URL="https://default71f8d9a33347400da852d217cf3d65.4e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8091adb2e0f64685af84f6f6087101bb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rFtzRTChPqE-k4bEn0WIXt1Ww4fzGSJkxsAeQXK0SEw";
+const API_URL = "https://default71f8d9a33347400da852d217cf3d65.4e.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/8091adb2e0f64685af84f6f6087101bb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rFtzRTChPqE-k4bEn0WIXt1Ww4fzGSJkxsAeQXK0SEw";
 
-  const monthLabel=$('#monthLabel'), grid=$('#calendarGrid'), sideDate=$('#selectedDayLabel'), eventList=$('#eventList'), totalCount=$('#totalCount');
-  const modalWrap=$('#modalWrap'), modalBack=$('#modalBack'), eventForm=$('#eventForm'), deleteBtn=$('#deleteBtn'), cancelBtn=$('#cancelBtn');
-  const evtTitle=$('#evtTitle'), evtDate=$('#evtDate'), evtTime=$('#evtTime'), evtDesc=$('#evtDesc'), evtColor=$('#evtColor'), evtId=$('#evtId');
+let current = new Date();
 
-  let viewDate=new Date();
-  let selectedDateISO=(new Date()).toISOString().slice(0,10);
+function iso(d) {
+  return d.toISOString().slice(0,10);
+}
 
-  function formatISODate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-  function formatMonthYear(d){return d.toLocaleString(undefined,{month:'long',year:'numeric'});}
-  function friendlyDateISO(iso){return new Date(iso+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});}
-  function escapeHtml(str){if(!str)return ''; return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function monthTitle(d) {
+  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+}
 
-  function loadLocalEvents(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];}}
-  function saveLocalEvents(arr){localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));}
-  function addLocalEvent(evt){const arr=loadLocalEvents();arr.push(evt);saveLocalEvents(arr);}
-  function updateLocalEvent(evt){const arr=loadLocalEvents().map(e=>e.id===evt.id?evt:e);saveLocalEvents(arr);}
-  function deleteLocalEvent(id){const arr=loadLocalEvents().filter(e=>e.id!==id);saveLocalEvents(arr);}
-  function clearLocalEvents(){localStorage.removeItem(STORAGE_KEY);}
-  async function fetchAPIEvents(){try{const res=await fetch(API_URL,{method:"POST"});if(!res.ok)throw new Error("API failed");const data=await res.json();return Array.isArray(data)?data:[]}catch(e){return[];}}
-
-  async function loadAllEvents(){const local=loadLocalEvents();const api=await fetchAPIEvents();return [...local,...api.map(e=>({...e,readonly:true}))];}
-
-  async function renderCalendar(){
-    grid.innerHTML=''; monthLabel.textContent=formatMonthYear(viewDate);
-    const firstOfMonth=new Date(viewDate.getFullYear(),viewDate.getMonth(),1);
-    const startDate=new Date(viewDate.getFullYear(),viewDate.getMonth(),1-firstOfMonth.getDay());
-    const allEvents=await loadAllEvents();
-
-    for(let i=0;i<42;i++){
-      const cur=new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()+i);
-      const iso=formatISODate(cur);
-      const isOther=cur.getMonth()!==viewDate.getMonth();
-      const isToday=iso===formatISODate(new Date());
-      const el=document.createElement('div'); el.className='day'+(isOther?' other-month':'')+(isToday?' today':''); el.tabIndex=0; el.dataset.iso=iso;
-      el.innerHTML=`<div class="date">${cur.getDate()}</div><div class="events"></div>`;
-
-      // ✅ attach click for adding/editing
-      el.addEventListener('click',()=>openModalForDate(iso));
-      el.addEventListener('keydown',e=>{if(e.key==='Enter')openModalForDate(iso);});
-
-      grid.appendChild(el);
-      const eventsWrap=el.querySelector('.events');
-      const dayEvents=allEvents.filter(x=>x.date===iso).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
-      dayEvents.forEach(ev=>{
-        const pill=document.createElement('div'); pill.className='event-pill'; pill.title=(ev.time?ev.time+' — ':'')+ev.title+(ev.desc?'\n'+ev.desc:''); pill.dataset.id=ev.id;
-        pill.innerHTML=`<span class="event-color" style="background:${ev.color||'#4f46e5'}"></span><span>${ev.time?ev.time+' ':''}${ev.title}</span>`;
-        if(!ev.readonly)pill.addEventListener('click',e=>{e.stopPropagation(); openEditEvent(ev.id);}); else pill.style.opacity=0.6;
-        eventsWrap.appendChild(pill);
-      });
-    }
-    highlightSelectedDay();
-    renderSidePanel();
-  }
-
-  function highlightSelectedDay(){qs('.day').forEach(d=>{d.style.boxShadow=(d.dataset.iso===selectedDateISO)?'inset 0 -2px 0 0 rgba(255,255,255,0.02)':'none';});}
-
-  async function renderSidePanel(){
-    sideDate.textContent=friendlyDateISO(selectedDateISO);
-    const localEvs=loadLocalEvents().filter(e=>e.date===selectedDateISO).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
-    totalCount.textContent=(await loadAllEvents()).length;
-    eventList.innerHTML='';
-    if(localEvs.length===0){eventList.innerHTML='<div class="no-events">No events for this day.</div>'; return;}
-    localEvs.forEach(ev=>{
-      const card=document.createElement('div'); card.className='ev-card';
-      card.innerHTML=`<div class="ev-left"><div class="event-color" style="background:${ev.color}"></div><div><div class="ev-title">${escapeHtml(ev.title)}</div><div class="ev-time">${ev.time?ev.time+' • ':''}${ev.desc?ev.desc:''}</div></div></div><div style="display:flex;gap:8px;align-items:center"><button style="background:transparent;border:0;color:var(--muted);cursor:pointer" data-id="${ev.id}" class="openBtn">Open</button></div>`;
-      eventList.appendChild(card);
+async function fetchEvents() {
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
     });
-    qs('.openBtn').forEach(b=>b.addEventListener('click',e=>openEditEvent(e.target.dataset.id)));
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return [];
   }
+}
 
-  function openModalForDate(iso){selectedDateISO=iso; highlightSelectedDay(); evtDate.value=iso; evtTime.value=''; evtTitle.value=''; evtDesc.value=''; evtColor.value='#4f46e5'; evtId.value=''; deleteBtn.style.display='none'; $('#modalTitle').textContent='Add event'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
-  function openEditEvent(id){const ev=loadLocalEvents().find(x=>x.id===id); if(!ev)return; selectedDateISO=ev.date; highlightSelectedDay(); evtDate.value=ev.date; evtTime.value=ev.time||''; evtTitle.value=ev.title; evtDesc.value=ev.desc||''; evtColor.value=ev.color||'#4f46e5'; evtId.value=ev.id; $('#modalTitle').textContent='Edit event'; deleteBtn.style.display='inline-block'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
-  function closeModal(){modalWrap.style.display='none';}
+async function render() {
+  document.getElementById("title").textContent = monthTitle(current);
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
 
-  cancelBtn.addEventListener('click',closeModal);
-  modalBack.addEventListener('click',e=>{if(e.target===modalBack)closeModal();});
-  eventForm.addEventListener('submit',e=>{e.preventDefault(); const title=evtTitle.value.trim(); if(!title){evtTitle.focus();return;} const date=evtDate.value; const time=evtTime.value||''; const desc=evtDesc.value.trim(); const color=evtColor.value; const idVal=evtId.value; if(idVal) updateLocalEvent({id:idVal,title,date,time,desc,color}); else addLocalEvent({id:'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),title,date,time,desc,color}); closeModal(); renderCalendar();});
-  deleteBtn.addEventListener('click',()=>{const idVal=evtId.value;if(!idVal)return;if(!confirm('Delete this event?'))return;deleteLocalEvent(idVal);closeModal();renderCalendar();});
+  const events = await fetchEvents();
 
-  $('#addQuick').addEventListener('click',()=>openModalForDate(selectedDateISO||formatISODate(new Date())));
-  $('#selectedDayLabel').addEventListener('click',()=>openModalForDate(selectedDateISO));
-  $('#prevBtn').addEventListener('click',()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1); renderCalendar();});
-  $('#nextBtn').addEventListener('click',()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1); renderCalendar();});
-  $('#todayBtn').addEventListener('click',()=>{viewDate=new Date(); selectedDateISO=formatISODate(new Date()); renderCalendar();});
-  $('#clearBtn').addEventListener('click',()=>{if(confirm('Clear all events?')){clearLocalEvents(); renderCalendar();}});
-  $('#exportBtn').addEventListener('click',()=>{const data=JSON.stringify(loadLocalEvents(),null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='calendar-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);});
+  const first = new Date(current.getFullYear(), current.getMonth(), 1);
+  const start = new Date(first);
+  start.setDate(start.getDate() - start.getDay());
 
-  document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if(e.key==='n')$('#nextBtn').click(); if(e.key==='p')$('#prevBtn').click(); if(e.key==='t')$('#todayBtn').click(); if(e.key==='a')$('#addQuick').click();});
-  window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)renderCalendar();});
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
 
-  renderCalendar();
-})();
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.innerHTML = `<h4>${d.getDate()}</h4>`;
+
+    const dayEvents = events.filter(e => e.date === iso(d));
+    dayEvents.forEach(ev => {
+      const el = document.createElement("div");
+      el.className = "event";
+      el.style.borderColor = ev.color || "#4f46e5";
+      el.textContent = `${ev.time || ""} ${ev.title}`;
+      cell.appendChild(el);
+    });
+
+    cal.appendChild(cell);
+  }
+}
+
+document.getElementById("prev").onclick = () => {
+  current.setMonth(current.getMonth() - 1);
+  render();
+};
+
+document.getElementById("next").onclick = () => {
+  current.setMonth(current.getMonth() + 1);
+  render();
+};
+
+render();
 </script>
+
 </body>
 </html>
