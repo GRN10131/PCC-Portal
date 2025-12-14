@@ -196,7 +196,20 @@
   const STORAGE_KEY = 'calendar_events_v1';
 
   /*** Events storage (localStorage) ***/
-  function loadEvents() {
+  function const API_URL = "https://make.powerautomate.com/environments/Default-71f8d9a3-3347-400d-a852-d217cf3d654e/flows/638ca9a7-bfeb-4fd6-a9cd-6a8ff81f8e87?v3=true";
+
+async function loadEvents() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+  return data.map(e => ({
+    id: e.id,
+    title: e.title,
+    date: e.date,
+    time: e.time,
+    desc: e.desc,
+    color: e.color || "#4f46e5"
+  }));
+} {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
