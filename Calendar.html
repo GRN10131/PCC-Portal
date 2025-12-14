@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Personal Calendar — Create Events</title>
+<title>Interactive Calendar — Create Events</title>
 <style>
   :root{
     --bg:#0f1724;
@@ -70,8 +70,8 @@
 <div class="wrap">
   <header>
     <div class="header-title">
-      <h1>Personal Calendar</h1>
-      <div class="small muted">Events only save on the device you make them on.</div>
+      <h1>Interactive Calendar</h1>
+      <div class="small muted">Create, edit and persist events locally</div>
     </div>
 
     <div class="controls">
@@ -91,7 +91,7 @@
         <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
       </div>
       <div class="grid" id="calendarGrid" aria-live="polite"></div>
-      <div class="footer">PLease note: events are saved in <code>localStorage</code>. This means only you can accsess events you create.</div>
+      <div class="footer">Events saved in <code>localStorage</code>. This runs entirely in your browser.</div>
     </section>
 
     <aside class="side-panel">
@@ -126,7 +126,7 @@
 
       <form id="eventForm">
         <label>Title
-          <input type="text" id="evtTitle" required placeholder="eg. Parade, Community event">
+          <input type="text" id="evtTitle" required placeholder="eg. Doctor, Team meeting">
         </label>
 
         <div class="row">
@@ -196,8 +196,7 @@
   const STORAGE_KEY = 'calendar_events_v1';
 
   /*** Events storage (localStorage) ***/
-  loadEvents()
-  {
+  function loadEvents() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
