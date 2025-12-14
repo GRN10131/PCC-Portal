@@ -136,16 +136,7 @@
 
 <script>
 (() => {
-  const $ = sel => document.querySelector(sel);
-  const qs = sel => document.querySelectorAll(sel);
-
-  function formatISODate(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
-  function formatMonthYear(date){ return date.toLocaleString(undefined,{month:'long', year:'numeric'}); }
-  function friendlyDateISO(iso){ const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}); }
-  function escapeHtml(str){ if(!str)return ''; return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  let viewDate=new Date();
-  let selectedDateISO=formatISODate(new Date());
+  const $=sel=>document.querySelector(sel), qs=sel=>document.querySelectorAll(sel);
   const STORAGE_KEY='calendar_events_v1';
   const API_URL="https://default71f8d9a33347400da852d217cf3d65.4e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8091adb2e0f64685af84f6f6087101bb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rFtzRTChPqE-k4bEn0WIXt1Ww4fzGSJkxsAeQXK0SEw";
 
@@ -153,16 +144,23 @@
   const modalWrap=$('#modalWrap'), modalBack=$('#modalBack'), eventForm=$('#eventForm'), deleteBtn=$('#deleteBtn'), cancelBtn=$('#cancelBtn');
   const evtTitle=$('#evtTitle'), evtDate=$('#evtDate'), evtTime=$('#evtTime'), evtDesc=$('#evtDesc'), evtColor=$('#evtColor'), evtId=$('#evtId');
 
-  function loadLocalEvents(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch(e){ console.error(e); return []; } }
-  function saveLocalEvents(arr){ localStorage.setItem(STORAGE_KEY,JSON.stringify(arr)); }
-  function addLocalEvent(evt){ const arr=loadLocalEvents(); arr.push(evt); saveLocalEvents(arr); }
-  function updateLocalEvent(evt){ const arr=loadLocalEvents().map(e=>e.id===evt.id?evt:e); saveLocalEvents(arr); }
-  function deleteLocalEvent(id){ const arr=loadLocalEvents().filter(e=>e.id!==id); saveLocalEvents(arr); }
-  function clearLocalEvents(){ localStorage.removeItem(STORAGE_KEY); }
+  let viewDate=new Date();
+  let selectedDateISO=(new Date()).toISOString().slice(0,10);
 
-  async function fetchAPIEvents(){ try{ const res=await fetch(API_URL,{method:"POST"}); if(!res.ok) throw new Error("API failed"); const data=await res.json(); return Array.isArray(data)?data:[]; } catch(err){ console.warn("API fetch failed:",err); return []; } }
+  function formatISODate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function formatMonthYear(d){return d.toLocaleString(undefined,{month:'long',year:'numeric'});}
+  function friendlyDateISO(iso){return new Date(iso+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});}
+  function escapeHtml(str){if(!str)return ''; return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
-  async function loadAllEvents(){ const local=loadLocalEvents(); const api=await fetchAPIEvents(); return [...local,...api]; }
+  function loadLocalEvents(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];}}
+  function saveLocalEvents(arr){localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));}
+  function addLocalEvent(evt){const arr=loadLocalEvents();arr.push(evt);saveLocalEvents(arr);}
+  function updateLocalEvent(evt){const arr=loadLocalEvents().map(e=>e.id===evt.id?evt:e);saveLocalEvents(arr);}
+  function deleteLocalEvent(id){const arr=loadLocalEvents().filter(e=>e.id!==id);saveLocalEvents(arr);}
+  function clearLocalEvents(){localStorage.removeItem(STORAGE_KEY);}
+  async function fetchAPIEvents(){try{const res=await fetch(API_URL,{method:"POST"});if(!res.ok)throw new Error("API failed");const data=await res.json();return Array.isArray(data)?data:[]}catch(e){return[];}}
+
+  async function loadAllEvents(){const local=loadLocalEvents();const api=await fetchAPIEvents();return [...local,...api.map(e=>({...e,readonly:true}))];}
 
   async function renderCalendar(){
     grid.innerHTML=''; monthLabel.textContent=formatMonthYear(viewDate);
@@ -175,75 +173,60 @@
       const iso=formatISODate(cur);
       const isOther=cur.getMonth()!==viewDate.getMonth();
       const isToday=iso===formatISODate(new Date());
-
       const el=document.createElement('div'); el.className='day'+(isOther?' other-month':'')+(isToday?' today':''); el.tabIndex=0; el.dataset.iso=iso;
       el.innerHTML=`<div class="date">${cur.getDate()}</div><div class="events"></div>`;
-
-      el.addEventListener('click', e=>{ if(!e.target.closest('.event-pill')) openModalForDate(iso); });
-      el.addEventListener('dblclick', ()=>openModalForDate(iso));
-      el.addEventListener('keydown', ev=>{ if(ev.key==='Enter') openModalForDate(iso); });
-
       grid.appendChild(el);
 
-      // show only local events for interactivity
-      const localEvs=loadLocalEvents().filter(x=>x.date===iso).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
+      const dayEvents=allEvents.filter(x=>x.date===iso).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
       const eventsWrap=el.querySelector('.events');
-      localEvs.slice(0,3).forEach(ev=>{
-        const pill=document.createElement('div');
-        pill.className='event-pill';
-        pill.title=(ev.time?ev.time+' — ':'')+ev.title+(ev.desc?'\n'+ev.desc:'');
-        pill.dataset.id=ev.id;
-        pill.innerHTML=`<span class="event-color" style="background:${ev.color}"></span><span>${ev.time?ev.time+' ':''}${ev.title}</span>`;
-        pill.addEventListener('click', e=>{ e.stopPropagation(); openEditEvent(ev.id); });
+      dayEvents.slice(0,3).forEach(ev=>{
+        const pill=document.createElement('div'); pill.className='event-pill'; pill.title=(ev.time?ev.time+' — ':'')+ev.title+(ev.desc?'\n'+ev.desc:'');
+        pill.dataset.id=ev.id; pill.innerHTML=`<span class="event-color" style="background:${ev.color||'#4f46e5'}"></span><span>${ev.time?ev.time+' ':''}${ev.title}</span>`;
+        if(!ev.readonly)pill.addEventListener('click',e=>{e.stopPropagation(); openEditEvent(ev.id);}); else pill.style.opacity=0.6;
         eventsWrap.appendChild(pill);
       });
-      if(localEvs.length>3){
-        const more=document.createElement('div'); more.className='small muted'; more.style.marginTop='6px';
-        more.textContent=`+ ${localEvs.length-3} more`; eventsWrap.appendChild(more);
-      }
+      if(dayEvents.length>3){const more=document.createElement('div');more.className='small muted';more.style.marginTop='6px';more.textContent=`+ ${dayEvents.length-3} more`;eventsWrap.appendChild(more);}
     }
     highlightSelectedDay(); renderSidePanel();
   }
 
-  function highlightSelectedDay(){ qs('.day').forEach(d=>{ d.style.boxShadow=(d.dataset.iso===selectedDateISO)?'inset 0 -2px 0 0 rgba(255,255,255,0.02)':'none'; }); }
+  function highlightSelectedDay(){qs('.day').forEach(d=>{d.style.boxShadow=(d.dataset.iso===selectedDateISO)?'inset 0 -2px 0 0 rgba(255,255,255,0.02)':'none';});}
 
   async function renderSidePanel(){
     sideDate.textContent=friendlyDateISO(selectedDateISO);
     const localEvs=loadLocalEvents().filter(e=>e.date===selectedDateISO).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
     totalCount.textContent=(await loadAllEvents()).length;
     eventList.innerHTML='';
-    if(localEvs.length===0){ eventList.innerHTML='<div class="no-events">No events for this day.</div>'; return; }
+    if(localEvs.length===0){eventList.innerHTML='<div class="no-events">No events for this day.</div>'; return;}
     localEvs.forEach(ev=>{
       const card=document.createElement('div'); card.className='ev-card';
-      card.innerHTML=`<div class="ev-left"><div class="event-color" style="background:${ev.color}"></div>
-      <div><div class="ev-title">${escapeHtml(ev.title)}</div>
-      <div class="ev-time">${ev.time?ev.time+' • ':''}${ev.desc?ev.desc:''}</div></div></div>
-      <div style="display:flex;gap:8px;align-items:center"><button style="background:transparent;border:0;color:var(--muted);cursor:pointer" data-id="${ev.id}" class="openBtn">Open</button></div>`;
+      card.innerHTML=`<div class="ev-left"><div class="event-color" style="background:${ev.color}"></div><div><div class="ev-title">${escapeHtml(ev.title)}</div><div class="ev-time">${ev.time?ev.time+' • ':''}${ev.desc?ev.desc:''}</div></div></div><div style="display:flex;gap:8px;align-items:center"><button style="background:transparent;border:0;color:var(--muted);cursor:pointer" data-id="${ev.id}" class="openBtn">Open</button></div>`;
       eventList.appendChild(card);
     });
-    qs('.openBtn').forEach(b=>b.addEventListener('click', e=>openEditEvent(e.target.dataset.id)));
+    qs('.openBtn').forEach(b=>b.addEventListener('click',e=>openEditEvent(e.target.dataset.id)));
   }
 
-  function openModalForDate(iso){ selectedDateISO=iso; highlightSelectedDay(); evtDate.value=iso; evtTime.value=''; evtTitle.value=''; evtDesc.value=''; evtColor.value='#4f46e5'; evtId.value=''; deleteBtn.style.display='none'; $('#modalTitle').textContent='Add event'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel(); }
-  function openEditEvent(id){ const ev=loadLocalEvents().find(x=>x.id===id); if(!ev) return; selectedDateISO=ev.date; highlightSelectedDay(); evtDate.value=ev.date; evtTime.value=ev.time||''; evtTitle.value=ev.title; evtDesc.value=ev.desc||''; evtColor.value=ev.color||'#4f46e5'; evtId.value=ev.id; $('#modalTitle').textContent='Edit event'; deleteBtn.style.display='inline-block'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel(); }
-  function closeModal(){ modalWrap.style.display='none'; }
+  function openModalForDate(iso){selectedDateISO=iso; highlightSelectedDay(); evtDate.value=iso; evtTime.value=''; evtTitle.value=''; evtDesc.value=''; evtColor.value='#4f46e5'; evtId.value=''; deleteBtn.style.display='none'; $('#modalTitle').textContent='Add event'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
+  function openEditEvent(id){const ev=loadLocalEvents().find(x=>x.id===id); if(!ev) return; selectedDateISO=ev.date; highlightSelectedDay(); evtDate.value=ev.date; evtTime.value=ev.time||''; evtTitle.value=ev.title; evtDesc.value=ev.desc||''; evtColor.value=ev.color||'#4f46e5'; evtId.value=ev.id; $('#modalTitle').textContent='Edit event'; deleteBtn.style.display='inline-block'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
+  function closeModal(){modalWrap.style.display='none';}
 
-  cancelBtn.addEventListener('click', closeModal); modalBack.addEventListener('click', e=>{ if(e.target===modalBack) closeModal(); });
-  eventForm.addEventListener('submit', e=>{ e.preventDefault(); const title=evtTitle.value.trim(); if(!title){evtTitle.focus();return;} const date=evtDate.value; const time=evtTime.value||''; const desc=evtDesc.value.trim(); const color=evtColor.value; const idVal=evtId.value; if(idVal) updateLocalEvent({id:idVal,title,date,time,desc,color}); else addLocalEvent({id:'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),title,date,time,desc,color}); closeModal(); renderCalendar(); });
-  deleteBtn.addEventListener('click', ()=>{ const idVal=evtId.value; if(!idVal) return; if(!confirm('Delete this event?')) return; deleteLocalEvent(idVal); closeModal(); renderCalendar(); });
+  cancelBtn.addEventListener('click',closeModal);
+  modalBack.addEventListener('click',e=>{if(e.target===modalBack)closeModal();});
+  eventForm.addEventListener('submit',e=>{e.preventDefault(); const title=evtTitle.value.trim(); if(!title){evtTitle.focus();return;} const date=evtDate.value; const time=evtTime.value||''; const desc=evtDesc.value.trim(); const color=evtColor.value; const idVal=evtId.value; if(idVal) updateLocalEvent({id:idVal,title,date,time,desc,color}); else addLocalEvent({id:'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),title,date,time,desc,color}); closeModal(); renderCalendar();});
+  deleteBtn.addEventListener('click',()=>{const idVal=evtId.value;if(!idVal)return;if(!confirm('Delete this event?'))return;deleteLocalEvent(idVal);closeModal();renderCalendar();});
 
-  $('#addQuick').addEventListener('click', ()=>openModalForDate(selectedDateISO||formatISODate(new Date())));
-  $('#selectedDayLabel').addEventListener('click', ()=>openModalForDate(selectedDateISO));
-  $('#prevBtn').addEventListener('click', async()=>{ viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1); await renderCalendar(); });
-  $('#nextBtn').addEventListener('click', async()=>{ viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1); await renderCalendar(); });
-  $('#todayBtn').addEventListener('click', async()=>{ viewDate=new Date(); selectedDateISO=formatISODate(new Date()); await renderCalendar(); });
-  $('#clearBtn').addEventListener('click', ()=>{ if(confirm('Clear all events?')){ clearLocalEvents(); renderCalendar(); } });
-  $('#exportBtn').addEventListener('click', ()=>{ const data=JSON.stringify(loadLocalEvents(),null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='calendar-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+  $('#addQuick').addEventListener('click',()=>openModalForDate(selectedDateISO||formatISODate(new Date())));
+  $('#selectedDayLabel').addEventListener('click',()=>openModalForDate(selectedDateISO));
+  $('#prevBtn').addEventListener('click',async()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1); await renderCalendar();});
+  $('#nextBtn').addEventListener('click',async()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1); await renderCalendar();});
+  $('#todayBtn').addEventListener('click',async()=>{viewDate=new Date(); selectedDateISO=formatISODate(new Date()); await renderCalendar();});
+  $('#clearBtn').addEventListener('click',()=>{if(confirm('Clear all events?')){clearLocalEvents(); renderCalendar();}});
+  $('#exportBtn').addEventListener('click',()=>{const data=JSON.stringify(loadLocalEvents(),null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='calendar-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);});
 
-  document.addEventListener('keydown', e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return; if(e.key==='n') $('#nextBtn').click(); if(e.key==='p') $('#prevBtn').click(); if(e.key==='t') $('#todayBtn').click(); if(e.key==='a') $('#addQuick').click(); });
-  window.addEventListener('storage', e=>{ if(e.key===STORAGE_KEY) renderCalendar(); });
+  document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if(e.key==='n')$('#nextBtn').click(); if(e.key==='p')$('#prevBtn').click(); if(e.key==='t')$('#todayBtn').click(); if(e.key==='a')$('#addQuick').click();});
+  window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)renderCalendar();});
 
-  (async()=>{ await renderCalendar(); })();
+  (async()=>{await renderCalendar();})();
 })();
 </script>
 </body>
