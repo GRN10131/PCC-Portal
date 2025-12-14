@@ -176,7 +176,6 @@
   const qs = sel => document.querySelectorAll(sel);
 
   function formatISODate(d) {
-    // YYYY-MM-DD
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,'0');
     const day = String(d.getDate()).padStart(2,'0');
@@ -191,31 +190,44 @@
   }
 
   /*** State ***/
-  let viewDate = new Date(); // current month view
-  let selectedDateISO = formatISODate(new Date()); // selected day shown in side panel
+  let viewDate = new Date();
+  let selectedDateISO = formatISODate(new Date());
   const STORAGE_KEY = 'calendar_events_v1';
+  const API_URL = "PASTE_POWER_AUTOMATE_HTTP_URL_HERE";
 
-  /*** Events storage (localStorage) ***/
-  function loadEvents() {
+  /*** Fetch events from API ***/
+  async function fetchEventsFromAPI() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch(e){ console.error(e); return []; }
+      const res = await fetch(API_URL, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to fetch from API");
+      return await res.json(); // assume array of events
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      return [];
+    }
   }
+
+  /*** Events storage ***/
+  async function loadEvents() {
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const api = await fetchEventsFromAPI();
+    return [...local, ...api]; // merge local and API events
+  }
+
   function saveEvents(arr){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
   }
   function addEvent(evt){
-    const arr = loadEvents();
+    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     arr.push(evt);
     saveEvents(arr);
   }
   function updateEvent(evt){
-    const arr = loadEvents().map(e => e.id === evt.id ? evt : e);
+    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map(e => e.id === evt.id ? evt : e);
     saveEvents(arr);
   }
   function deleteEvent(id){
-    const arr = loadEvents().filter(e => e.id !== id);
+    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').filter(e => e.id !== id);
     saveEvents(arr);
   }
   function clearAllEvents(){
@@ -229,20 +241,19 @@
   const eventList = $('#eventList');
   const totalCount = $('#totalCount');
 
-  /*** Render calendar grid for viewDate ***/
-  function renderCalendar(){
+  /*** Render calendar grid ***/
+  async function renderCalendar(){
     grid.innerHTML = '';
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     monthLabel.textContent = formatMonthYear(viewDate);
 
-    // start with Sunday of first week containing 1st of month
     const firstOfMonth = new Date(year, month, 1);
     const startDayIndex = firstOfMonth.getDay();
     const startDate = new Date(year, month, 1 - startDayIndex);
 
-    // show 6 rows x 7 = 42 days for consistent layout
-    const events = loadEvents();
+    const events = await loadEvents();
+
     for(let i=0;i<42;i++){
       const cur = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()+i);
       const iso = formatISODate(cur);
@@ -252,40 +263,28 @@
       el.className = 'day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '');
       el.tabIndex = 0;
       el.dataset.iso = iso;
-
       el.innerHTML = `<div class="date">${cur.getDate()}</div><div class="events"></div>`;
 
-      // attach click to open add modal for that day
       el.addEventListener('click', (e) => {
-        // make sure clicking event pill opens event view instead of creating a new one
         if(e.target.closest('.event-pill')) return;
         openModalForDate(iso);
       });
-      el.addEventListener('dblclick', () => {
-        openModalForDate(iso);
-      });
-      el.addEventListener('keydown', (ev) => {
-        if(ev.key==='Enter') openModalForDate(iso);
-      });
+      el.addEventListener('dblclick', () => openModalForDate(iso));
+      el.addEventListener('keydown', ev => { if(ev.key==='Enter') openModalForDate(iso); });
 
       grid.appendChild(el);
 
-      // populate events for that day
       const evs = events.filter(x => x.date === iso).sort((a,b) => (a.time||'') > (b.time||'') ? 1 : -1);
       const eventsWrap = el.querySelector('.events');
       evs.slice(0,3).forEach(ev => {
         const pill = document.createElement('div');
         pill.className = 'event-pill';
-        pill.title = (ev.time ? ev.time + ' — ' : '') + ev.title + (ev.desc ? '\\n' + ev.desc : '');
+        pill.title = (ev.time ? ev.time + ' — ' : '') + ev.title + (ev.desc ? '\n' + ev.desc : '');
         pill.dataset.id = ev.id;
         pill.innerHTML = `<span class="event-color" style="background:${ev.color}"></span><span style="overflow:hidden;text-overflow:ellipsis">${ev.time ? ev.time + ' ' : ''}${ev.title}</span>`;
-        pill.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openEditEvent(ev.id);
-        });
+        pill.addEventListener('click', e => { e.stopPropagation(); openEditEvent(ev.id); });
         eventsWrap.appendChild(pill);
       });
-
       if(evs.length > 3){
         const more = document.createElement('div');
         more.className = 'small muted';
@@ -294,8 +293,6 @@
         eventsWrap.appendChild(more);
       }
     }
-
-    // highlight selected day
     highlightSelectedDay();
     renderSidePanel();
   }
@@ -311,10 +308,10 @@
   }
 
   /*** Side panel ***/
-  function renderSidePanel(){
+  async function renderSidePanel(){
     sideDate.textContent = friendlyDateISO(selectedDateISO);
-    const evs = loadEvents().filter(e => e.date === selectedDateISO).sort((a,b)=> (a.time||'') > (b.time||'') ? 1:-1);
-    totalCount.textContent = loadEvents().length;
+    const evs = (await loadEvents()).filter(e => e.date === selectedDateISO).sort((a,b)=> (a.time||'') > (b.time||'') ? 1:-1);
+    totalCount.textContent = (await loadEvents()).length;
     eventList.innerHTML = '';
 
     if(evs.length === 0){
@@ -339,12 +336,8 @@
       eventList.appendChild(card);
     });
 
-    // wire open buttons
     qs('.openBtn').forEach(b => {
-      b.addEventListener('click', e => {
-        const id = e.target.dataset.id;
-        openEditEvent(id);
-      });
+      b.addEventListener('click', e => openEditEvent(e.target.dataset.id));
     });
   }
 
@@ -378,7 +371,7 @@
   }
 
   function openEditEvent(id){
-    const ev = loadEvents().find(x => x.id === id);
+    const ev = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').find(x => x.id === id);
     if(!ev) return;
     selectedDateISO = ev.date;
     highlightSelectedDay();
@@ -395,16 +388,11 @@
     renderSidePanel();
   }
 
-  function closeModal(){
-    modalWrap.style.display = 'none';
-  }
-
+  function closeModal(){ modalWrap.style.display = 'none'; }
   cancelBtn.addEventListener('click', closeModal);
-  modalBack.addEventListener('click', (e)=> {
-    if(e.target === modalBack) closeModal();
-  });
+  modalBack.addEventListener('click', e => { if(e.target===modalBack) closeModal(); });
 
-  eventForm.addEventListener('submit', (e) => {
+  eventForm.addEventListener('submit', e => {
     e.preventDefault();
     const title = evtTitle.value.trim();
     if(!title) { evtTitle.focus(); return; }
@@ -415,13 +403,9 @@
     const idVal = evtId.value;
 
     if(idVal){
-      // update
-      const updated = { id: idVal, title, date, time, desc, color };
-      updateEvent(updated);
+      updateEvent({ id: idVal, title, date, time, desc, color });
     } else {
-      // create new
-      const newEvent = { id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), title, date, time, desc, color };
-      addEvent(newEvent);
+      addEvent({ id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), title, date, time, desc, color });
     }
     closeModal();
     renderCalendar();
@@ -436,86 +420,42 @@
     renderCalendar();
   });
 
-  // quick add button opens today's modal
   $('#addQuick').addEventListener('click', () => openModalForDate(selectedDateISO || formatISODate(new Date())));
-
-  // clicking on sidebar day's label opens modal
   $('#selectedDayLabel').addEventListener('click', () => openModalForDate(selectedDateISO));
 
-  // navigation
-  $('#prevBtn').addEventListener('click', () => {
-    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
-    renderCalendar();
-  });
-  $('#nextBtn').addEventListener('click', () => {
-    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
-    renderCalendar();
-  });
-  $('#todayBtn').addEventListener('click', () => {
-    viewDate = new Date();
-    selectedDateISO = formatISODate(new Date());
-    renderCalendar();
-  });
+  $('#prevBtn').addEventListener('click', () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1); renderCalendar(); });
+  $('#nextBtn').addEventListener('click', () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1); renderCalendar(); });
+  $('#todayBtn').addEventListener('click', () => { viewDate = new Date(); selectedDateISO = formatISODate(new Date()); renderCalendar(); });
 
-  // click on grid day to select (for side panel) — handled on render; but keep a delegated handler for keyboard focus:
-  grid.addEventListener('click', (e) => {
-    const day = e.target.closest('.day');
-    if(day && day.dataset.iso){
-      selectedDateISO = day.dataset.iso;
-      renderSidePanel();
-      highlightSelectedDay();
-    }
-  });
-
-  // clear / export
   $('#clearBtn').addEventListener('click', () => {
-    if(confirm('Clear all events from localStorage? This cannot be undone.')) {
-      clearAllEvents();
-      renderCalendar();
-    }
+    if(confirm('Clear all events from localStorage? This cannot be undone.')) { clearAllEvents(); renderCalendar(); }
   });
+
   $('#exportBtn').addEventListener('click', () => {
-    const data = JSON.stringify(loadEvents(), null, 2);
+    const data = JSON.stringify(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'), null, 2);
     const blob = new Blob([data], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'calendar-events.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'calendar-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   });
 
-  // helper: escape HTML
-  function escapeHtml(str){
-    if(!str) return '';
-    return str.replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   /*** Initial setup ***/
-  // initialize selectedDateISO to today
-  selectedDateISO = formatISODate(new Date());
-  // show weekdays starting on Sunday already set in DOM
-  renderCalendar();
+  (async () => { await renderCalendar(); })();
 
-  // keyboard: press "n" to next month, "p" prev, "t" today, "a" add
-  document.addEventListener('keydown', (e) => {
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if(e.key === 'n') { $('#nextBtn').click(); }
-    if(e.key === 'p') { $('#prevBtn').click(); }
-    if(e.key === 't') { $('#todayBtn').click(); }
-    if(e.key === 'a') { $('#addQuick').click(); }
+  document.addEventListener('keydown', e => {
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if(e.key==='n') $('#nextBtn').click();
+    if(e.key==='p') $('#prevBtn').click();
+    if(e.key==='t') $('#todayBtn').click();
+    if(e.key==='a') $('#addQuick').click();
   });
 
-  // initial total count display
-  totalCount.textContent = loadEvents().length;
+  totalCount.textContent = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').length;
 
-  // observe localStorage changes in other tabs and re-render
-  window.addEventListener('storage', (e) => {
-    if(e.key === STORAGE_KEY) renderCalendar();
-  });
+  window.addEventListener('storage', e => { if(e.key === STORAGE_KEY) renderCalendar(); });
 })();
 </script>
+
 </body>
 </html>
