@@ -136,7 +136,7 @@
 
 <script>
 (() => {
-  const $=sel=>document.querySelector(sel), qs=sel=>document.querySelectorAll(sel);
+  const $=s=>document.querySelector(s), qs=s=>document.querySelectorAll(s);
   const STORAGE_KEY='calendar_events_v1';
   const API_URL="https://default71f8d9a33347400da852d217cf3d65.4e.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8091adb2e0f64685af84f6f6087101bb/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rFtzRTChPqE-k4bEn0WIXt1Ww4fzGSJkxsAeQXK0SEw";
 
@@ -169,25 +169,29 @@
     const allEvents=await loadAllEvents();
 
     for(let i=0;i<42;i++){
-      const cur=new Date(startDate.getFullYear(),startDate.getMonth(),startDate.getDate()+i);
+      const cur=new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()+i);
       const iso=formatISODate(cur);
       const isOther=cur.getMonth()!==viewDate.getMonth();
       const isToday=iso===formatISODate(new Date());
       const el=document.createElement('div'); el.className='day'+(isOther?' other-month':'')+(isToday?' today':''); el.tabIndex=0; el.dataset.iso=iso;
       el.innerHTML=`<div class="date">${cur.getDate()}</div><div class="events"></div>`;
-      grid.appendChild(el);
 
-      const dayEvents=allEvents.filter(x=>x.date===iso).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
+      // ✅ attach click for adding/editing
+      el.addEventListener('click',()=>openModalForDate(iso));
+      el.addEventListener('keydown',e=>{if(e.key==='Enter')openModalForDate(iso);});
+
+      grid.appendChild(el);
       const eventsWrap=el.querySelector('.events');
-      dayEvents.slice(0,3).forEach(ev=>{
-        const pill=document.createElement('div'); pill.className='event-pill'; pill.title=(ev.time?ev.time+' — ':'')+ev.title+(ev.desc?'\n'+ev.desc:'');
-        pill.dataset.id=ev.id; pill.innerHTML=`<span class="event-color" style="background:${ev.color||'#4f46e5'}"></span><span>${ev.time?ev.time+' ':''}${ev.title}</span>`;
+      const dayEvents=allEvents.filter(x=>x.date===iso).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
+      dayEvents.forEach(ev=>{
+        const pill=document.createElement('div'); pill.className='event-pill'; pill.title=(ev.time?ev.time+' — ':'')+ev.title+(ev.desc?'\n'+ev.desc:''); pill.dataset.id=ev.id;
+        pill.innerHTML=`<span class="event-color" style="background:${ev.color||'#4f46e5'}"></span><span>${ev.time?ev.time+' ':''}${ev.title}</span>`;
         if(!ev.readonly)pill.addEventListener('click',e=>{e.stopPropagation(); openEditEvent(ev.id);}); else pill.style.opacity=0.6;
         eventsWrap.appendChild(pill);
       });
-      if(dayEvents.length>3){const more=document.createElement('div');more.className='small muted';more.style.marginTop='6px';more.textContent=`+ ${dayEvents.length-3} more`;eventsWrap.appendChild(more);}
     }
-    highlightSelectedDay(); renderSidePanel();
+    highlightSelectedDay();
+    renderSidePanel();
   }
 
   function highlightSelectedDay(){qs('.day').forEach(d=>{d.style.boxShadow=(d.dataset.iso===selectedDateISO)?'inset 0 -2px 0 0 rgba(255,255,255,0.02)':'none';});}
@@ -207,7 +211,7 @@
   }
 
   function openModalForDate(iso){selectedDateISO=iso; highlightSelectedDay(); evtDate.value=iso; evtTime.value=''; evtTitle.value=''; evtDesc.value=''; evtColor.value='#4f46e5'; evtId.value=''; deleteBtn.style.display='none'; $('#modalTitle').textContent='Add event'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
-  function openEditEvent(id){const ev=loadLocalEvents().find(x=>x.id===id); if(!ev) return; selectedDateISO=ev.date; highlightSelectedDay(); evtDate.value=ev.date; evtTime.value=ev.time||''; evtTitle.value=ev.title; evtDesc.value=ev.desc||''; evtColor.value=ev.color||'#4f46e5'; evtId.value=ev.id; $('#modalTitle').textContent='Edit event'; deleteBtn.style.display='inline-block'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
+  function openEditEvent(id){const ev=loadLocalEvents().find(x=>x.id===id); if(!ev)return; selectedDateISO=ev.date; highlightSelectedDay(); evtDate.value=ev.date; evtTime.value=ev.time||''; evtTitle.value=ev.title; evtDesc.value=ev.desc||''; evtColor.value=ev.color||'#4f46e5'; evtId.value=ev.id; $('#modalTitle').textContent='Edit event'; deleteBtn.style.display='inline-block'; modalWrap.style.display='block'; setTimeout(()=>evtTitle.focus(),50); renderSidePanel();}
   function closeModal(){modalWrap.style.display='none';}
 
   cancelBtn.addEventListener('click',closeModal);
@@ -217,16 +221,16 @@
 
   $('#addQuick').addEventListener('click',()=>openModalForDate(selectedDateISO||formatISODate(new Date())));
   $('#selectedDayLabel').addEventListener('click',()=>openModalForDate(selectedDateISO));
-  $('#prevBtn').addEventListener('click',async()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1); await renderCalendar();});
-  $('#nextBtn').addEventListener('click',async()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1); await renderCalendar();});
-  $('#todayBtn').addEventListener('click',async()=>{viewDate=new Date(); selectedDateISO=formatISODate(new Date()); await renderCalendar();});
+  $('#prevBtn').addEventListener('click',()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1); renderCalendar();});
+  $('#nextBtn').addEventListener('click',()=>{viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1); renderCalendar();});
+  $('#todayBtn').addEventListener('click',()=>{viewDate=new Date(); selectedDateISO=formatISODate(new Date()); renderCalendar();});
   $('#clearBtn').addEventListener('click',()=>{if(confirm('Clear all events?')){clearLocalEvents(); renderCalendar();}});
   $('#exportBtn').addEventListener('click',()=>{const data=JSON.stringify(loadLocalEvents(),null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='calendar-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);});
 
   document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if(e.key==='n')$('#nextBtn').click(); if(e.key==='p')$('#prevBtn').click(); if(e.key==='t')$('#todayBtn').click(); if(e.key==='a')$('#addQuick').click();});
   window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)renderCalendar();});
 
-  (async()=>{await renderCalendar();})();
+  renderCalendar();
 })();
 </script>
 </body>
